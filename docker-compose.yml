@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: filestorage
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pswpsw
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  filestoring:
+    build:
+      context: .
+      dockerfile: FileStoringService/Dockerfile
+    container_name: filestoring
+    ports:
+      - "8081:80"
+    depends_on:
+      - postgres
+    environment:
+      ConnectionStrings__PostgresConnection: "Host=postgres;Port=5432;Database=filestorage;Username=postgres;Password=pswpsw"
+    volumes:
+      - filestorage:/app/Storage
+
+  fileanalysis:
+      build:
+        context: .
+        dockerfile: FileAnalysisService/Dockerfile
+      container_name: fileanalysis
+      ports:
+        - "8082:80"
+      depends_on:
+        - postgres
+        - filestoring
+      environment:
+        ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=filestorage;Username=postgres;Password=pswpsw
+  apigateway:
+    build:
+      context: .
+      dockerfile: ApiGateway/Dockerfile
+    container_name: apigateway
+    ports:
+      - "8080:80"
+    depends_on:
+      - filestoring
+      - fileanalysis
+
+
+volumes:
+  pgdata:
+  filestorage:
